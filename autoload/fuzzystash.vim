@@ -11,48 +11,32 @@ function! s:get_git_root()
     return v:shell_error ? '' : root
 endfunction
 
-"function! s:stash_sink(lines)
-"    if len(a:lines) < 3
-"        return
-"    endif
-"
-"    let action = get(s:stash_actions, a:lines[1])
-"    let cmd = get(s:actions, action, 'echo ')
-"    if cmd == s:actions.drop
-"        for idx in range(len(a:lines) - 1, 2, -1)
-"            let stash = matchstr(a:lines[idx], 'stash@{[0-9]\+}')
-"            call system(cmd.stash)
-"        endfor
-"    else
-"        if cmd == s:actions.push
-"            call s:create_stash(a:lines[0])
-"        else
-"            let stash = matchstr(a:lines[2], 'stash@{[0-9]\+}')
-"            call system(cmd.stash)
-"            checktime
-"        endif
-"    endif
-"endfunction
-
 function! s:stash_sink(lines)
-    if len(a:lines) < 2
-        return
+
+    let action = get(s:stash_actions, a:lines[1])
+    let cmd = get(s:actions, action, 'echo ')
+
+    if len(a:lines) < 3
+        if cmd != s:actions.push
+            return
+        endif
     endif
 
-    let action = get(s:stash_actions, a:lines[0])
-    let cmd = get(s:actions, action, 'echo ')
     if cmd == s:actions.drop
-        for idx in range(len(a:lines) - 1, 1, -1)
+        for idx in range(len(a:lines) - 1, 2, -1)
             let stash = matchstr(a:lines[idx], 'stash@{[0-9]\+}')
             call system(cmd.stash)
         endfor
     else
-        let stash = matchstr(a:lines[1], 'stash@{[0-9]\+}')
-        call system(cmd.stash)
-        checktime
+        if cmd == s:actions.push
+            call s:create_stash(a:lines[0])
+        else
+            let stash = matchstr(a:lines[2], 'stash@{[0-9]\+}')
+            call system(cmd.stash)
+            checktime
+        endif
     endif
 endfunction
-
 
 function! s:create_stash(...)
     let root = s:get_git_root()
@@ -82,7 +66,7 @@ function! fuzzystash#list_stash(...)
     \ 'source': source,
     \ 'sink*': function('s:stash_sink'),
     \ 'options': ['--ansi', '--multi', '--tiebreak=index',
-    \   '--inline-info', '--prompt', 'Stashes> ', '--header',
+    \   '--print-query', '--inline-info', '--prompt', 'Stashes> ', '--header',
     \   ':: ' . actions, '--expect='.expect_keys,
     \   '--preview', 'grep -o "stash@{[0-9]\+}" <<< {} | xargs git stash show --format=format: -p --color=always']
     \ }
