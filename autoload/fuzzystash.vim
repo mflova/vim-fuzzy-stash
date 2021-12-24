@@ -1,7 +1,7 @@
 let s:actions = {
   \ 'pop': 'git stash pop ',
   \ 'drop': 'git stash drop ',
-  \ 'push': 'git stash push -m ',
+  \ 'push': 'git stash push --keep-index ',
   \ 'apply': 'git stash apply ', }
 
 let s:stash_actions = get(g:, 'fuzzy_stash_actions', { 'ctrl-d': 'drop', 'ctrl-a': 'pop', 'ctrl-p': 'apply', 'ctrl-s': 'push' })
@@ -48,7 +48,7 @@ function! s:create_stash(...)
     else
         let name = '' 
     endif
-    let str = split(system('git stash push '.name), '\n')[0]
+    let str = split(system(s:actions.push .name), '\n')[0]
     checktime
     redraw
     echo str
