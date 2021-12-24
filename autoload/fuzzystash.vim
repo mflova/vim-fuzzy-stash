@@ -1,14 +1,38 @@
 let s:actions = {
   \ 'pop': 'git stash pop ',
   \ 'drop': 'git stash drop ',
+  \ 'push': 'git stash push -m ',
   \ 'apply': 'git stash apply ', }
 
-let s:stash_actions = get(g:, 'fuzzy_stash_actions', { 'ctrl-d': 'drop', 'ctrl-a': 'pop', 'ctrl-p': 'apply' })
+let s:stash_actions = get(g:, 'fuzzy_stash_actions', { 'ctrl-d': 'drop', 'ctrl-a': 'pop', 'ctrl-p': 'apply', 'ctrl-s': 'push' })
 
 function! s:get_git_root()
     let root = split(system('git rev-parse --show-toplevel'), '\n')[0]
     return v:shell_error ? '' : root
 endfunction
+
+"function! s:stash_sink(lines)
+"    if len(a:lines) < 3
+"        return
+"    endif
+"
+"    let action = get(s:stash_actions, a:lines[1])
+"    let cmd = get(s:actions, action, 'echo ')
+"    if cmd == s:actions.drop
+"        for idx in range(len(a:lines) - 1, 2, -1)
+"            let stash = matchstr(a:lines[idx], 'stash@{[0-9]\+}')
+"            call system(cmd.stash)
+"        endfor
+"    else
+"        if cmd == s:actions.push
+"            call s:create_stash(a:lines[0])
+"        else
+"            let stash = matchstr(a:lines[2], 'stash@{[0-9]\+}')
+"            call system(cmd.stash)
+"            checktime
+"        endif
+"    endif
+"endfunction
 
 function! s:stash_sink(lines)
     if len(a:lines) < 2
@@ -29,7 +53,8 @@ function! s:stash_sink(lines)
     endif
 endfunction
 
-function! fuzzystash#create_stash(...)
+
+function! s:create_stash(...)
     let root = s:get_git_root()
     if empty(root)
         return 0
@@ -56,7 +81,7 @@ function! fuzzystash#list_stash(...)
     let options = {
     \ 'source': source,
     \ 'sink*': function('s:stash_sink'),
-    \ 'options': ['--ansi', '--multi', '--tiebreak=index', '--reverse',
+    \ 'options': ['--ansi', '--multi', '--tiebreak=index',
     \   '--inline-info', '--prompt', 'Stashes> ', '--header',
     \   ':: ' . actions, '--expect='.expect_keys,
     \   '--preview', 'grep -o "stash@{[0-9]\+}" <<< {} | xargs git stash show --format=format: -p --color=always']
