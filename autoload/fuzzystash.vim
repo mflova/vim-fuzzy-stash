@@ -1,10 +1,11 @@
 let s:actions = {
   \ 'pop': 'git stash pop ',
   \ 'drop': 'git stash drop ',
-  \ 'push': 'git stash push --keep-index ',
+  \ 'keep': 'git stash push --keep-index ',
+  \ 'push': 'git stash push ',
   \ 'apply': 'git stash apply ', }
 
-let s:stash_actions = get(g:, 'fuzzy_stash_actions', { 'ctrl-d': 'drop', 'ctrl-a': 'pop', 'ctrl-p': 'apply', 'ctrl-s': 'push' })
+let s:stash_actions = get(g:, 'fuzzy_stash_actions', { 'ctrl-d': 'drop', 'ctrl-a': 'pop', 'ctrl-p': 'apply', 'ctrl-s': 'push' , 'ctrl-k': 'keep'})
 
 function! s:get_git_root()
     let root = split(system('git rev-parse --show-toplevel'), '\n')[0]
@@ -18,7 +19,9 @@ function! s:stash_sink(lines)
 
     if len(a:lines) < 3
         if cmd != s:actions.push
-            return
+            if cmd != s:actions.keep
+                return
+            endif
         endif
     endif
 
@@ -28,12 +31,16 @@ function! s:stash_sink(lines)
             call system(cmd.stash)
         endfor
     else
-        if cmd == s:actions.push
-            call s:create_stash(a:lines[0])
+        if cmd == s:actions.keep
+            call s:create_stash(cmd, a:lines[0])
         else
-            let stash = matchstr(a:lines[2], 'stash@{[0-9]\+}')
-            call system(cmd.stash)
-            checktime
+            if cmd == s:actions.push
+                call s:create_stash(cmd, a:lines[0])
+            else
+                let stash = matchstr(a:lines[2], 'stash@{[0-9]\+}')
+                call system(cmd.stash)
+                checktime
+            endif
         endif
     endif
 endfunction
@@ -43,12 +50,14 @@ function! s:create_stash(...)
     if empty(root)
         return 0
     endif
-    if len(a:000) > 0
-        let name = '-m "'.a:1.'"'
+    if len(a:000[1]) > 0
+        echo "WITH NAME"
+        let name = '-m "'.a:2.'"'
     else
+        echo "NO NAME"
         let name = '' 
     endif
-    let str = split(system(s:actions.push .name), '\n')[0]
+    let str = split(system(a:1 .name), '\n')[0]
     checktime
     redraw
     echo str
